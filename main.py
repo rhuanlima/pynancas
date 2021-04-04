@@ -1,4 +1,7 @@
-import src.create_db as db
+import src.pynancas_Class as pyn
 
 if __name__ == '__main__':
-    conn = db.create_connection("data/pynancas.db")
+    pyn.clear()
+    pyn.initialize()
+    pyn.menu_loop()
+    pyn.close()
