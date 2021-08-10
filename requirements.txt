@@ -1,2 +1,0 @@
-peewee==3.14.4
-readchar==3.0.4
