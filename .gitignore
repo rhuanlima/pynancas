@@ -146,3 +146,4 @@ dmypy.json
 apoio
 data/pynancas.db
 data/import/data.csv
+data/import/transactions_accounts.csv
