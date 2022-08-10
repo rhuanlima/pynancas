@@ -147,3 +147,11 @@ apoio
 data/pynancas.db
 data/import/data.csv
 data/import/transactions_accounts.csv
+data/import/moneywizDB/moneywiz-release.db
+data/export/transactions.csv
+data/export/transactions_accounts.csv
+data/export/accounts.csv
+transactions.csv
+transactions_accounts.csv
+accounts.csv
+error.out
