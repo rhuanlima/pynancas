@@ -156,3 +156,5 @@ transactions_accounts.csv
 accounts.csv
 error.out
 pynancas.code-workspace
+data/original_db.csv
+data/pynancas.sqlite3
