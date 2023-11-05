@@ -1,11 +1,16 @@
-import model.db_crud as db
-import model.log as log
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from model.db_crud import Base, Account, Category, Subcategory, Transaction
+from model.log import get_log
 
-logger = log.get_log()
-banco = db.Banco()
+logger = get_log()
 
-banco.create_db()
-logger.debug("Banco iniciado")
+engine = create_engine("sqlite:///finance.db")
+Base.metadata.create_all(engine)
 
-banco.close()
-logger.debug("Banco encerrado")
+Session = sessionmaker(bind=engine)
+session = Session()
+
+logger.info("Iniciando o aplicativo")
+
+session.close()

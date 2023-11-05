@@ -1,45 +1,55 @@
-from sqlalchemy import create_engine
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    Boolean,
+    ForeignKey,
+)
+from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.ext.declarative import declarative_base
 
-import model.import_data as dt_import
-import model.log as log
+Base = declarative_base()
 
 
-class TableAsCreated(Exception):
-    "Table as Created"
-    pass
+class Account(Base):
+    __tablename__ = "accounts"
+    id = Column(Integer, primary_key=True)
+    des_account = Column(String)
 
 
-class Banco:
-    def __init__(self):
-        self.engine = create_engine("sqlite:///data/pynancas.sqlite3", echo=True)
-        self.sqlite_connection = self.engine.connect()
-        self.logger = log.get_log()
+class Category(Base):
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True)
+    des_category = Column(String, unique=True)
 
-    def create_db(self, force=False):
-        if force:
-            self.sqlite_connection.execute("TRUNCATE TABLE tb_transactions")
-            self.sqlite_connection.execute("TRUNCATE TABLE tb_categorias")
-            self.sqlite_connection.execute("TRUNCATE TABLE tb_contas")
-        df_money, df_categorias, df_contas = dt_import.import_db_gsheets(
-            "data/original_db.csv"
-        )
-        # Criando base de dados se não existir
-        try:
-            df_money.to_sql("tb_transactions", self.sqlite_connection, if_exists="fail")
-        except TableAsCreated:
-            self.logger.debug("Table tb_transactions already create")
-        try:
-            df_categorias.to_sql(
-                "tb_categorias", self.sqlite_connection, if_exists="fail"
-            )
-        except TableAsCreated:
-            self.logger.debug("Table tb_categorias already create")
-        try:
-            df_contas.to_sql("tb_contas", self.sqlite_connection, if_exists="fail")
-        except TableAsCreated:
-            self.logger.debug("Table tb_contas already create")
-        del [df_money, df_categorias, df_contas]
 
-    def close(self):
-        self.sqlite_connection.close()
-        self.logger.debug("Connection closed")
+class Subcategory(Base):
+    __tablename__ = "subcategories"
+    id = Column(Integer, primary_key=True)
+    des_subcategory = Column(String, unique=True)
+
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+    id = Column(Integer, primary_key=True)
+    dt_transaction = Column(DateTime)
+    vintage_transaction = Column(DateTime)
+    vintage_installment_card = Column(DateTime)
+    id_account = Column(Integer, ForeignKey("accounts.id"))
+    account = relationship(Account, foreign_keys=[id_account])
+    des_description = Column(String)
+    id_account_from = Column(Integer, ForeignKey("accounts.id"))
+    account_from = relationship(Account, foreign_keys=[id_account_from])
+    id_account_to = Column(Integer, ForeignKey("accounts.id"))
+    account_to = relationship(Account, foreign_keys=[id_account_to])
+    id_category = Column(Integer, ForeignKey("categories.id"))
+    category = relationship(Category)
+    id_subcategory = Column(Integer, ForeignKey("subcategories.id"))
+    subcategory = relationship(Subcategory)
+    vl_transaction = Column(Float)
+    num_installments = Column(Integer)
+    num_total_installments = Column(Integer)
+    fl_consolidated = Column(Boolean)
