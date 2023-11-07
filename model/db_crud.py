@@ -18,6 +18,7 @@ class Account(Base):
     __tablename__ = "accounts"
     id = Column(Integer, primary_key=True)
     des_account = Column(String)
+    fl_active = Column(Boolean, default=True)
 
 
 class Category(Base):
@@ -25,11 +26,6 @@ class Category(Base):
     id = Column(Integer, primary_key=True)
     des_category = Column(String, unique=True)
 
-
-class Subcategory(Base):
-    __tablename__ = "subcategories"
-    id = Column(Integer, primary_key=True)
-    des_subcategory = Column(String, unique=True)
 
 
 class Transaction(Base):
@@ -47,9 +43,7 @@ class Transaction(Base):
     account_to = relationship(Account, foreign_keys=[id_account_to])
     id_category = Column(Integer, ForeignKey("categories.id"))
     category = relationship(Category)
-    id_subcategory = Column(Integer, ForeignKey("subcategories.id"))
-    subcategory = relationship(Subcategory)
     vl_transaction = Column(Float)
     num_installments = Column(Integer)
     num_total_installments = Column(Integer)
-    fl_consolidated = Column(Boolean)
+    fl_consolidated = Column(Boolean, default=False)

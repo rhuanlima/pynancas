@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão Financeira</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mt-4">Sistema de Gestão Financeira</h1>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h2>Criar Nova Conta</h2>
+                <form action="/create_account" method="post" class="form">
+                    <div class="form-group">
+                        <input type="text" name="account_name" placeholder="Nome da Conta" class="form-control"
+                            required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Conta</button>
+                </form>
+            </div>
+
+            <div class="col-md-6">
+                <h2>Criar Nova Categoria</h2>
+                <form action="/create_category" method="post" class="form">
+                    <div class="form-group">
+                        <input type="text" name="category_name" placeholder="Nome da Categoria" class="form-control"
+                            required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Categoria</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h2>Criar Nova Subcategoria</h2>
+                <form action="/create_subcategory" method="post" class="form">
+                    <div class="form-group">
+                        <input type="text" name="subcategory_name" placeholder="Nome da Subcategoria"
+                            class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Subcategoria</button>
+                </form>
+            </div>
+
+            <div class="col-md-6">
+                <h2>Criar Nova Transação</h2>
+                <form action="/create_transaction" method="post" class="form">
+                    <div class="form-group">
+                        <input type="date" name="dt_transaction" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="date" name="vintage_transaction" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="date" name="vintage_installment_card" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <select name="id_account" class="form-control" required>
+                            <option value="" disabled selected>Selecione a Conta</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.des_account }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" name="des_description" placeholder="Descrição" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <select name="id_account_from" class="form-control" required>
+                            <option value="" disabled selected>Selecione a Conta de Origem</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.des_account }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <select name="id_account_to" class="form-control" required>
+                            <option value="" disabled selected>Selecione a Conta de Destino</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.des_account }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <select name="id_category" class="form-control" required>
+                            <option value="" disabled selected>Selecione a Categoria</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.des_category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" step="0.01" name="vl_transaction" placeholder="Valor da Transação"
+                            class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="num_installments" placeholder="Número de Parcelas"
+                            class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="num_total_installments" placeholder="Número Total de Parcelas"
+                            class="form-control" required>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="fl_consolidated" class="form-check-input" id="fl_consolidated">
+                        <label class="form-check-label" for="fl_consolidated">Consolidado</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Transação</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
