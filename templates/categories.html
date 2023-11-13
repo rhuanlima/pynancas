@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block container %}
+{% with passed = get_flashed_messages() %}
+{% if passed %}
+<div class="alert alert-success" role="alert">
+    {{ passed[0] }}
+</div>
+{% endif %}
+{% endwith %}
+<h1 class="mt-4">Gerenciamento de Categorias </h1>
+
+<div class="col-md-6">
+    <h1 class="display-6">Adicionar nova categoria</h1>
+    <form action="{{ url_for('create_category') }}" method="post" class="form">
+        <div class="input-group mb-3">
+            <input type="text" name="category_name" placeholder="Nome da categoria" class="form-control" required>
+            <button type="submit" class="btn btn-outline-secondary"  id="button-addon2">Adicionar</button>
+        </div>
+    </form>
+</div>
+
+<br>
+    <div class="col-md-6">
+        <h1 class="display-6">Categorias existentes</h1>
+    <table class="table table-striped table-hover">
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Categoria</th>
+            <th scope="col">Ações</th>
+        </tr>
+        {% for category in categories %}
+        <tr>
+            <th scope="row">{{ category.id }}</td>
+            <td>
+                {{ category.des_category }}
+            </td>
+            <td>
+                <a href="{{ url_for('edit_category', id=category.id) }}" title="Editar Conta"><i data-feather="edit"></i></a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    </div>
+
+
+
+
+{% endblock %}

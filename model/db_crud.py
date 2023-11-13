@@ -27,20 +27,19 @@ class Category(Base):
     des_category = Column(String, unique=True)
 
 
-
 class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True)
     dt_transaction = Column(DateTime)
-    vintage_transaction = Column(DateTime)
-    vintage_installment_card = Column(DateTime)
+    vintage_transaction = Column(Integer)
+    vintage_installment_card = Column(Integer)
     id_account = Column(Integer, ForeignKey("accounts.id"))
-    account = relationship(Account, foreign_keys=[id_account])
+    account = relationship(Account, foreign_keys=[id_account], lazy="joined")
     des_description = Column(String)
     id_account_from = Column(Integer, ForeignKey("accounts.id"))
-    account_from = relationship(Account, foreign_keys=[id_account_from])
+    account_from = relationship(Account, foreign_keys=[id_account_from], lazy="joined")
     id_account_to = Column(Integer, ForeignKey("accounts.id"))
-    account_to = relationship(Account, foreign_keys=[id_account_to])
+    account_to = relationship(Account, foreign_keys=[id_account_to], lazy="joined")
     id_category = Column(Integer, ForeignKey("categories.id"))
     category = relationship(Category)
     vl_transaction = Column(Float)
