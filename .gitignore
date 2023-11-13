@@ -160,3 +160,4 @@ data/original_db.csv
 data/pynancas.sqlite3
 data/pynance.sqlite
 data_load.py
+ngrok
