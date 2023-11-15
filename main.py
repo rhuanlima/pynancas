@@ -1,14 +1,22 @@
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, case
 from sqlalchemy.orm import sessionmaker
 from model.db_crud import Base, Account, Category, Transaction
 from model.log import get_log
 from flask import Flask, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from flask_babel import Babel, Locale, format_currency
+
 
 logger = get_log()
 
 app = Flask(__name__)
+babel = Babel(app)
+locale = Locale("pt_BR")
+app.jinja_env.filters["format_currency"] = format_currency
+app.config["BABEL_DEFAULT_LOCALE"] = "pt_BR"
+
+
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 engine = create_engine("sqlite:///data/pynance.sqlite")
 Base.metadata.create_all(engine)
@@ -25,8 +33,19 @@ def index():
     # Obtém o total do saldo nas contas ativas considerando todas as transações, agrupado por conta
     total_balances = (
         session.query(
-            Account.des_account,
-            func.sum(Transaction.vl_transaction).label("total_balance"),
+            Account.des_account.label("account"),
+            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
+                "total_balance"
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.fl_consolidated, Transaction.vl_transaction),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("consolidated_balance"),
         )
         .join(Transaction, Transaction.id_account == Account.id)
         .filter(Account.fl_active == True)
