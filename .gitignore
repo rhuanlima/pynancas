@@ -161,3 +161,4 @@ data/pynancas.sqlite3
 data/pynance.sqlite
 data_load.py
 ngrok
+data/carga_financas.csv
