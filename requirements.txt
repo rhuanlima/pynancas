@@ -1,5 +1,6 @@
-SQLAlchemy==2.0.23
+SQLAlchemy
 flask
 python-dateutil
 flask_babel
 pandas
+python-dotenv
