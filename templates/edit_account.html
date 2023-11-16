@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 
 {% block container %}
+{% with passed = get_flashed_messages() %}
+{% if passed %}
+<div class="alert alert-success" role="alert">
+    {{ passed[0] }}
+</div>
+{% endif %}
+{% endwith %}
 <div class="col-md-6">
     <h1 class="display-6">Editar Conta</h1>
     <form action="{{ url_for('edit_account', id=account.id) }}" method="post" class="form">

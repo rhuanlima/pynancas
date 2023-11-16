@@ -1,12 +1,13 @@
-from sqlalchemy import create_engine, func, case
-from sqlalchemy.orm import sessionmaker
-from model.db_crud import Base, Account, Category, Transaction
-from model.log import get_log
-from flask import Flask, render_template, request, redirect, url_for, flash
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
-from flask_babel import Babel, Locale, format_currency
 
+from dateutil.relativedelta import relativedelta
+from flask import Flask, flash, redirect, render_template, request, url_for
+from flask_babel import Babel, Locale, format_currency
+from sqlalchemy import case, create_engine, func
+from sqlalchemy.orm import sessionmaker
+
+from model.db_crud import Account, Base, Category, Transaction
+from model.log import get_log
 
 logger = get_log()
 
@@ -228,7 +229,7 @@ def create_transaction():
 def pg_transfers():
     session = Session()
     categories = (
-        session.query(Category).filter(Category.des_category == "TRANSFERENCIA").all()
+        session.query(Category).filter(Category.des_category == "Transferência").all()
     )
     try:
         transactions = (
@@ -238,7 +239,8 @@ def pg_transfers():
             .limit(10)
             .all()
         )
-    except:
+    except Exception as e:
+        logger.error(e)
         transactions = ()
     accounts = session.query(Account).filter(Account.fl_active == True).all()
     session.close()
@@ -294,7 +296,7 @@ def create_transfer():
     session.add(new_transaction)
     session.commit()
     session.close()
-    return redirect(url_for("index"))
+    return redirect(url_for("pg_transfer"))
 
 
 @app.route("/delete_transaction/<int:id>", methods=["GET", "POST"])
@@ -306,6 +308,51 @@ def delete_transaction(id):
     session.close()
     flash("Transação excluida com sucesso!")
     return redirect(url_for("pg_transactions"))
+
+
+@app.route("/edit_transaction/<int:id>", methods=["GET", "POST"])
+def edit_transaction(id):
+    session = Session()
+    transaction = session.query(Transaction).filter(Transaction.id == id).one()
+    accounts = session.query(Account).filter(Account.fl_active == True).all()
+    categories = session.query(Category).all()
+    if request.method == "POST":
+        transaction.dt_transaction = datetime.strptime(
+            request.form.get("dt_transaction"), "%Y-%m-%d"
+        )
+        transaction.vintage_transaction = int(request.form.get("vintage_transaction"))
+        transaction.vintage_installment_card = int(
+            request.form.get("vintage_installment_card")
+        )
+        transaction.id_account = int(request.form.get("id_account"))
+        transaction.des_description = request.form.get("des_description")
+        try:
+            transaction.id_account_from = int(request.form.get("id_account_from"))
+        except Exception as e:
+            logger.error(e)
+            transaction.id_account_from = request.form.get("id_account_from")
+        try:
+            transaction.id_account_to = int(request.form.get("id_account_to"))
+        except Exception as e:
+            logger.error(e)
+            transaction.id_account_to = request.form.get("id_account_to")
+        transaction.id_category = int(request.form.get("id_category"))
+        transaction.vl_transaction = float(request.form.get("vl_transaction"))
+        transaction.num_installments = int(request.form.get("num_installments"))
+        transaction.num_total_installments = int(
+            request.form.get("num_total_installments")
+        )
+        transaction.fl_consolidated = bool(request.form.get("fl_consolidated"))
+        session.commit()
+        flash("Transação editada com sucesso!")
+        return redirect(url_for("edit_transaction", id=id))
+    session.close()
+    return render_template(
+        "edit_transaction.html",
+        transaction=transaction,
+        accounts=accounts,
+        categories=categories,
+    )
 
 
 if __name__ == "__main__":

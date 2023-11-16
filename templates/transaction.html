@@ -64,7 +64,7 @@
             <input type="number" value="0" name="num_installments" placeholder="Número de Parcelas" class="form-control" >
         </div> -->
         <div class="form-floating">
-            <input type="number" value="0" name="num_total_installments" placeholder="Número Total de Parcelas"
+            <input type="number" value="1" min="1" name="num_total_installments" placeholder="Número Total de Parcelas"
                 class="form-control" >
             <label for="floatingInputGrid">Quantidade de parcelas</label>
         </div><br>
@@ -107,8 +107,9 @@
                 {{ transaction.vl_transaction }}
             </td>
             <td>
-                <button onclick="confirmarExclusao({{transaction.id}})" title="Editar Transação"><i
-                        data-feather="edit"></i></button>
+                <button type="button" class="btn btn-light" onclick="editarTransação({{transaction.id}})" title="Editar Transação"><i
+                        class="fa-solid fa-pencil"></i></button>
+                <button type="button" class="btn btn-light" onclick="confirmarExclusao({{transaction.id}})" title="Excluir Transação"><i class="fa-solid fa-trash"></i></button>
             </td>
         </tr>
         {% endfor %}
@@ -122,6 +123,11 @@
         } else {
             console.log("Exclusão cancelada.");
         }
+    }
+    function editarTransação(idTransacao) {
+
+            window.location.href = `/edit_transaction/${idTransacao}`;
+
     }
 </script>
 
