@@ -4,3 +4,5 @@ python-dateutil
 flask_babel
 pandas
 python-dotenv
+psycopg2-binary
+tqdm

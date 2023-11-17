@@ -1,6 +1,8 @@
 from datetime import datetime
+from os import getenv
 
 from dateutil.relativedelta import relativedelta
+from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_babel import Babel, Locale, format_currency
 from sqlalchemy import case, create_engine, func
@@ -8,6 +10,8 @@ from sqlalchemy.orm import sessionmaker
 
 from model.db_crud import Account, Base, Category, Transaction
 from model.log import get_log
+
+load_dotenv()
 
 logger = get_log()
 
@@ -18,8 +22,9 @@ app.jinja_env.filters["format_currency"] = format_currency
 app.config["BABEL_DEFAULT_LOCALE"] = "pt_BR"
 
 
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
-engine = create_engine("sqlite:///data/pynance.sqlite")
+DATABASE_URL = getenv("DATABASE_URL")
+app.secret_key = getenv("secret_key")
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
