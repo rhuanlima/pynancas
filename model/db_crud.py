@@ -1,15 +1,15 @@
 from sqlalchemy import (
-    create_engine,
+    Boolean,
     Column,
+    DateTime,
+    Float,
+    ForeignKey,
     Integer,
     String,
-    Float,
-    DateTime,
-    Boolean,
-    ForeignKey,
+    create_engine,
 )
-from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
 
 Base = declarative_base()
 
@@ -36,9 +36,13 @@ class Transaction(Base):
     id_account = Column(Integer, ForeignKey("accounts.id"))
     account = relationship(Account, foreign_keys=[id_account], lazy="joined")
     des_description = Column(String)
-    id_account_from = Column(Integer, ForeignKey("accounts.id"))
+    id_account_from = Column(
+        Integer, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True
+    )
     account_from = relationship(Account, foreign_keys=[id_account_from], lazy="joined")
-    id_account_to = Column(Integer, ForeignKey("accounts.id"))
+    id_account_to = Column(
+        Integer, ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True
+    )
     account_to = relationship(Account, foreign_keys=[id_account_to], lazy="joined")
     id_category = Column(Integer, ForeignKey("categories.id"))
     category = relationship(Category)

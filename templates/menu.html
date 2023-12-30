@@ -1,0 +1,10 @@
+
+<nav class="nav nav-underline">
+    <a class="nav-link {{ home }}" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i> Home</a>
+    <a class="nav-link {{ transactions }}" href="{{ url_for('pg_transactions') }}"><i class="fa-solid fa-wallet"></i> Transactions</a>
+    <a class="nav-link {{ transactions }}" href="{{ url_for('pg_transfers') }}"><i class="fa-solid fa-repeat"></i>
+        Transfer</a>
+    <a class="nav-link {{ accounts }}" href="{{ url_for('pg_accounts') }}"><i class="fa-solid fa-building-columns"></i> Accounts</a>
+    <a class="nav-link {{ categories }}" href="{{ url_for('pg_categories') }}"><i class="fa-solid fa-building-columns"></i>
+        Categories</a>
+</nav>

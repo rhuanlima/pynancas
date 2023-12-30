@@ -2,52 +2,27 @@
 
 {% block container %}
 
-<h1>Resumo Financeiro</h1>
-
-<h2>Saldos por Conta:</h2>
-<ul>
-    {% for account, total_balance in total_balances %}
-    <li>{{ account }}: {{ total_balance }}</li>
-    {% endfor %}
-</ul>
-
-
-
-<!-- <h1 class="mt-4">Sistema de Gestão Financeira</h1>
-<div class="row mt-4">
-    <div class="col-md-6">
-        <h2>Criar Nova Conta</h2>
-        <form action="/create_account" method="post" class="form">
-            <div class="form-group">
-                <input type="text" name="account_name" placeholder="Nome da Conta" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Criar Conta</button>
-        </form>
-    </div>
 
     <div class="col-md-6">
-        <h2>Criar Nova Categoria</h2>
-        <form action="/create_category" method="post" class="form">
-            <div class="form-group">
-                <input type="text" name="category_name" placeholder="Nome da Categoria" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Criar Categoria</button>
-        </form>
+        <h1 class="display-6">Resumo Financeiro</h1>
+    <table class="table table-striped table-hover">
+        <tr>
+            <th scope="col">Conta</th>
+            <th scope="col">Saldo Consolidado</th>
+            <th scope="col">Saldo Total</th>
+        </tr>
+        {% for balance in total_balances %}
+        <tr>
+            <th scope="row">{{ balance.account }}</td>
+            <td>
+                {{ balance.consolidated_balance | format_currency('BRL') }}
+            </td>
+            <td>
+                {{ balance.total_balance | format_currency('BRL') }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
     </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <h2>Criar Nova Subcategoria</h2>
-        <form action="/create_subcategory" method="post" class="form">
-            <div class="form-group">
-                <input type="text" name="subcategory_name" placeholder="Nome da Subcategoria" class="form-control"
-                    required>
-            </div>
-            <button type="submit" class="btn btn-primary">Criar Subcategoria</button>
-        </form>
-    </div>
-
-    
-</div> -->
 {% endblock %}

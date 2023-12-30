@@ -1,16 +1,30 @@
-from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker
-from model.db_crud import Base, Account, Category, Transaction
-from model.log import get_log
-from flask import Flask, render_template, request, redirect, url_for, flash
 from datetime import datetime
+from os import getenv
+
 from dateutil.relativedelta import relativedelta
+from dotenv import load_dotenv
+from flask import Flask, flash, redirect, render_template, request, url_for
+from flask_babel import Babel, Locale, format_currency
+from sqlalchemy import case, create_engine, func
+from sqlalchemy.orm import sessionmaker
+
+from model.db_crud import Account, Base, Category, Transaction
+from model.log import get_log
+
+load_dotenv()
 
 logger = get_log()
 
 app = Flask(__name__)
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
-engine = create_engine("sqlite:///data/pynance.sqlite")
+babel = Babel(app)
+locale = Locale("pt_BR")
+app.jinja_env.filters["format_currency"] = format_currency
+app.config["BABEL_DEFAULT_LOCALE"] = "pt_BR"
+
+
+DATABASE_URL = getenv("DATABASE_URL")
+app.secret_key = getenv("secret_key")
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
@@ -25,8 +39,19 @@ def index():
     # Obtém o total do saldo nas contas ativas considerando todas as transações, agrupado por conta
     total_balances = (
         session.query(
-            Account.des_account,
-            func.sum(Transaction.vl_transaction).label("total_balance"),
+            Account.des_account.label("account"),
+            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
+                "total_balance"
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.fl_consolidated, Transaction.vl_transaction),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("consolidated_balance"),
         )
         .join(Transaction, Transaction.id_account == Account.id)
         .filter(Account.fl_active == True)
@@ -209,7 +234,7 @@ def create_transaction():
 def pg_transfers():
     session = Session()
     categories = (
-        session.query(Category).filter(Category.des_category == "TRANSFERENCIA").all()
+        session.query(Category).filter(Category.des_category == "Transferência").all()
     )
     try:
         transactions = (
@@ -219,7 +244,8 @@ def pg_transfers():
             .limit(10)
             .all()
         )
-    except:
+    except Exception as e:
+        logger.error(e)
         transactions = ()
     accounts = session.query(Account).filter(Account.fl_active == True).all()
     session.close()
@@ -275,7 +301,7 @@ def create_transfer():
     session.add(new_transaction)
     session.commit()
     session.close()
-    return redirect(url_for("index"))
+    return redirect(url_for("pg_transfer"))
 
 
 @app.route("/delete_transaction/<int:id>", methods=["GET", "POST"])
@@ -289,5 +315,50 @@ def delete_transaction(id):
     return redirect(url_for("pg_transactions"))
 
 
+@app.route("/edit_transaction/<int:id>", methods=["GET", "POST"])
+def edit_transaction(id):
+    session = Session()
+    transaction = session.query(Transaction).filter(Transaction.id == id).one()
+    accounts = session.query(Account).filter(Account.fl_active == True).all()
+    categories = session.query(Category).all()
+    if request.method == "POST":
+        transaction.dt_transaction = datetime.strptime(
+            request.form.get("dt_transaction"), "%Y-%m-%d"
+        )
+        transaction.vintage_transaction = int(request.form.get("vintage_transaction"))
+        transaction.vintage_installment_card = int(
+            request.form.get("vintage_installment_card")
+        )
+        transaction.id_account = int(request.form.get("id_account"))
+        transaction.des_description = request.form.get("des_description")
+        try:
+            transaction.id_account_from = int(request.form.get("id_account_from"))
+        except Exception as e:
+            logger.error(e)
+            transaction.id_account_from = request.form.get("id_account_from")
+        try:
+            transaction.id_account_to = int(request.form.get("id_account_to"))
+        except Exception as e:
+            logger.error(e)
+            transaction.id_account_to = request.form.get("id_account_to")
+        transaction.id_category = int(request.form.get("id_category"))
+        transaction.vl_transaction = float(request.form.get("vl_transaction"))
+        transaction.num_installments = int(request.form.get("num_installments"))
+        transaction.num_total_installments = int(
+            request.form.get("num_total_installments")
+        )
+        transaction.fl_consolidated = bool(request.form.get("fl_consolidated"))
+        session.commit()
+        flash("Transação editada com sucesso!")
+        return redirect(url_for("edit_transaction", id=id))
+    session.close()
+    return render_template(
+        "edit_transaction.html",
+        transaction=transaction,
+        accounts=accounts,
+        categories=categories,
+    )
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=80)
