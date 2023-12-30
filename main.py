@@ -119,6 +119,39 @@ def activate_account(id):
     return redirect(url_for("pg_accounts"))
 
 
+@app.route("/consolidate_transaction/<int:id>")
+@app.route("/consolidate_transaction/<int:id>/<int:ac_filter>")
+def consolidate_transaction(id, ac_filter=None):
+    logger.info(f"Consolidando: {ac_filter}")
+    session = Session()
+    transaction = session.query(Transaction).get(id)
+
+    # Ativa a conta
+    transaction.fl_consolidated = True
+    session.commit()
+    session.close()
+    flash(f"Transação {id} foi Consolidada!")
+    if ac_filter is None:
+        return redirect(url_for("pg_transactions"))
+    return redirect(url_for("pg_transactions", ac_filter=ac_filter))
+
+
+@app.route("/unconsolidate_transaction/<int:id>")
+@app.route("/unconsolidate_transaction/<int:id>/<int:ac_filter>")
+def unconsolidate_transaction(id, ac_filter=None):
+    session = Session()
+    transaction = session.query(Transaction).get(id)
+
+    # Ativa a conta
+    transaction.fl_consolidated = False
+    session.commit()
+    session.close()
+    flash(f"Transação {id} não foi consolidada!")
+    if ac_filter is None:
+        return redirect(url_for("pg_transactions"))
+    return redirect(url_for("pg_transactions", ac_filter=ac_filter))
+
+
 @app.route("/create_account", methods=["POST"])
 def create_account():
     session = Session()
@@ -169,11 +202,45 @@ def edit_category(id):
 
 # tansaction
 @app.route("/transactions")
-def pg_transactions():
+@app.route("/transactions/<int:ac_filter>", methods=["GET", "POST"])
+def pg_transactions(ac_filter=None):
     session = Session()
+    total_balances = (
+        session.query(
+            Account.id.label("id"),
+            Account.des_account.label("account"),
+            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
+                "total_balance"
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.fl_consolidated, Transaction.vl_transaction),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("consolidated_balance"),
+        )
+        .join(Transaction, Transaction.id_account == Account.id)
+        .filter(Account.fl_active == True)
+        .group_by(Account.id)
+        .all()
+    )
+
     transactions = (
         session.query(Transaction).order_by(Transaction.id.desc()).limit(10).all()
     )
+
+    if ac_filter is not None:
+        transactions = (
+            session.query(Transaction)
+            .filter(Transaction.id_account == int(ac_filter))
+            .order_by(Transaction.id.desc())
+            .limit(10)
+            .all()
+        )
+
     accounts = session.query(Account).filter(Account.fl_active == True).all()
     categories = session.query(Category).all()
     session.close()
@@ -182,6 +249,8 @@ def pg_transactions():
         transactions=transactions,
         accounts=accounts,
         categories=categories,
+        total_balances=total_balances,
+        ac_filter=ac_filter,
     )
 
 
@@ -227,6 +296,10 @@ def create_transaction():
         session.commit()
         installment += 1
     session.close()
+    if request.form.get("ac_filter") != "None":
+        return redirect(
+            url_for("pg_transactions", ac_filter=request.form.get("ac_filter"))
+        )
     return redirect(url_for("pg_transactions"))
 
 
