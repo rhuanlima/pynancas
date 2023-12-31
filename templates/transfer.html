@@ -8,64 +8,85 @@
 </div>
 {% endif %}
 {% endwith %}
-<h1 class="mt-4">Gerenciamento de Contas </h1>
+<h1 class="mt-4">Transferência entre contas</h1>
+</br>
 <div class="row">
-<div class="col-md-6">
-    <h1 class="display-6">Criar Nova Transação</h1>
-    <form action="/create_transfer" method="post" class="form-card">
-        <div class="form-floating">
-            <input type="date" name="dt_transaction" class="form-control" required>
-            <label for="floatingInputGrid">Data da Tansação</label>
-        </div><br>
-        <div class="form-floating">
-            <input type="text" name="des_description" placeholder="Descrição" class="form-control" required>
-            <label for="floatingInputGrid">Descrição</label>
-        </div><br>
-        <div class="form-floating">
-            <select name="id_account_from" class="form-control" required>
-                <option value="" disabled selected>Selecione a Conta de Origem</option>
-                {% for account in accounts %}
-                <option value="{{ account.id }}">{{ account.des_account }}</option>
-                {% endfor %}
-            </select>
-            <label for="floatingInputGrid">Conta de Origem</label>
-        </div><br>
-        <div class="form-floating">
-            <select name="id_account_to" class="form-control" required>
-                <option value="" disabled selected>Selecione a Conta de Destino</option>
-                {% for account in accounts %}
-                <option value="{{ account.id }}">{{ account.des_account }}</option>
-                {% endfor %}
-            </select>
-            <label for="floatingInputGrid">Conta de Destino</label>
-        </div><br>
-        <div class="form-floating">
-            <select name="id_category" class="form-control" required>
-                <option value="" disabled selected>Selecione a Categoria</option>
-                {% for category in categories %}
-                <option selected value="{{ category.id }}">{{ category.des_category }}</option>
-                {% endfor %}
-            </select>
-            <label for="floatingInputGrid">Categoria</label>
-        </div><br>
-        <div class="form-floating">
-            <input type="number" step="0.01" name="vl_transaction" placeholder="Valor da Transação" class="form-control"
-                required>
-            <label for="floatingInputGrid">Valor da transação</label>
-        </div><br>
-        <div class="row">
-            <div class="form-check-inline">
-                <input type="checkbox" name="fl_consolidated" class="form-check-input" id="fl_consolidated">
-                <label class="floatingInputGrid" for="fl_consolidated">Consolidado</label>
+    <div class="col-sm-8">
+        <h1 class="display-6">Incluir nova Transferência</h1>
+        <form action="/create_transfer" method="post" class="form-card">
+            <div class="form-floating">
+                <input type="date" name="dt_transaction" class="form-control" required>
+                <label for="floatingInputGrid">Data da Tansação</label>
+            </div><br>
+            <div class="form-floating">
+                <input type="text" name="des_description" placeholder="Descrição" class="form-control" required>
+                <label for="floatingInputGrid">Descrição</label>
+            </div><br>
+            <div class="form-floating">
+                <select name="id_account_from" class="form-control" required>
+                    <option value="" disabled selected>Selecione a Conta de Origem</option>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.des_account }}</option>
+                    {% endfor %}
+                </select>
+                <label for="floatingInputGrid">Conta de Origem</label>
+            </div><br>
+            <div class="form-floating">
+                <select name="id_account_to" class="form-control" required>
+                    <option value="" disabled selected>Selecione a Conta de Destino</option>
+                    {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.des_account }}</option>
+                    {% endfor %}
+                </select>
+                <label for="floatingInputGrid">Conta de Destino</label>
+            </div><br>
+            <div class="form-floating">
+                <select name="id_category" class="form-control" required>
+                    <option value="" disabled selected>Selecione a Categoria</option>
+                    {% for category in categories %}
+                    <option selected value="{{ category.id }}">{{ category.des_category }}</option>
+                    {% endfor %}
+                </select>
+                <label for="floatingInputGrid">Categoria</label>
+            </div><br>
+            <div class="form-floating">
+                <input type="number" step="0.01" name="vl_transaction" placeholder="Valor da Transação" class="form-control"
+                    required>
+                <label for="floatingInputGrid">Valor da transação</label>
+            </div><br>
+            <div class="row">
+                <div class="form-check-inline">
+                    <input type="checkbox" name="fl_consolidated" class="form-check-input" id="fl_consolidated">
+                    <label class="floatingInputGrid" for="fl_consolidated">Consolidado</label>
+                </div>
             </div>
-        </div>
-        <br><br>
-        <button type="submit" class="btn btn-primary">Incluir Transação</button>
-    </form>
+            <br><br>
+            <button type="submit" class="btn btn-primary">Incluir Transação</button>
+        </form>
 
+    </div>
+    <br>
+    <div class="col-sm-4">
+        <h1 class="display-6">Resumo Financeiro</h1>
+        <table class="table table-striped table-hover">
+            <tr>
+                <th scope="col">Conta</th>
+                <th scope="col">Saldo Consolidado</th>
+            </tr>
+            {% for balance in total_balances %}
+            <tr>
+                <th scope="row"> {{ balance.account }} 
+                    </td>
+                <td>
+                    {{ balance.consolidated_balance | format_currency('BRL') }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 </div>
-<br>
-<div class="col-md-6">
+</br>
+<div class="row">   
     <h1 class="display-6">Ultimas 10 adicionadas</h1>
     <table class="table table-striped table-hover">
         <tr>
@@ -78,23 +99,29 @@
         {% for transaction in transactions %}
         <tr>
             <th scope="row">{{ transaction.id }}</td>
-            <td>
-                {{ transaction.des_description }}
-            </td>
-            <td>
-                {{ transaction.account.des_account }}
-            </td>
-            <td>
-                {{ transaction.vl_transaction }}
-            </td>
+                <td>
+                    {{ transaction.dt_transaction.strftime('%d/%m/%Y') }} - {{ transaction.des_description }}
+                </td>
+                <td>
+                    {{ transaction.account.des_account }}
+                </td>
+                <td>
+                    {{ transaction.vl_transaction | format_currency('BRL')}}
+                </td>
             <td>
                 <a href="{{ url_for('edit_transaction', id=transaction.id) }}" title="Editar Transação"><i
                         data-feather="edit"></i></a>
+                {% if transaction.fl_consolidated %}
+                <a href="{{ url_for('unconsolidate_transfer', id=transaction.id) }}" title="Consolidado"><i
+                        class="fa-solid fa-lock"></i></a>
+                {% else %}
+                <a href="{{ url_for('consolidate_transfer', id=transaction.id) }}" title="Não Consolidado"><i
+                        class="fa-solid fa-unlock"></i></a>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}
     </table>
-</div>
 </div>
 
 
