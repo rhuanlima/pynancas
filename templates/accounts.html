@@ -15,6 +15,11 @@
     <form action="{{ url_for('create_account') }}" method="post" class="form">
         <div class="input-group mb-3">
             <input type="text" name="account_name" placeholder="Nome da Conta" class="form-control" required>
+                <select name="tp_account" class="form-control" required>
+                    <option value="a">Conta Movimento</option>
+                    <option value="b">Conta Investimento</option>
+                    <option value="c">Conta Cartão</option>
+                </select>
             <button type="submit" class="btn btn-outline-secondary"  id="button-addon2">Adicionar</button>
         </div>
     </form>
@@ -27,6 +32,7 @@
         <tr>
             <th scope="col">ID</th>
             <th scope="col">Nome da Conta</th>
+            <th scope="col">Tipo da Conta</th>
             <th scope="col">Ações</th>
         </tr>
         {% for account in accounts %}
@@ -34,6 +40,11 @@
             <th scope="row">{{ account.id }}</td>
             <td>
                 {{ account.des_account }}
+            </td>
+            <td>
+                {% if account.tp_account == 'a' %} Conta Movimento {% endif %}
+                {% if account.tp_account == 'b' %} Conta Investimento {% endif %}
+                {% if account.tp_account == 'c' %} Conta Cartão {% endif %}               
             </td>
             <td>
                 <a href="{{ url_for('edit_account', id=account.id) }}" title="Editar Conta"><i data-feather="edit"></i></a>

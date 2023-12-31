@@ -19,6 +19,7 @@ class Account(Base):
     id = Column(Integer, primary_key=True)
     des_account = Column(String)
     fl_active = Column(Boolean, default=True)
+    tp_account = Column(String)
 
 
 class Category(Base):

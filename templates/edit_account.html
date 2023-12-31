@@ -13,6 +13,11 @@
     <form action="{{ url_for('edit_account', id=account.id) }}" method="post" class="form">
         <div class="input-group mb-3">
             <input type="text" name="new_account_name" placeholder="{{ account.des_account }}" class="form-control" required>
+            <select name="tp_account" class="form-control" required>
+                <option {% if account.tp_account=='a' %} selected {% endif %} value="a">Conta Movimento</option>
+                <option {% if account.tp_account=='b' %} selected {% endif %} value="b">Conta Investimento</option>
+                <option {% if account.tp_account=='c' %} selected {% endif %} value="c">Conta Cartão</option>
+            </select>
             <button type="submit" class="btn btn-outline-secondary" id="button-addon2">Editar</button>
         </div>
     </form>

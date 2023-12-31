@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block container %}
+    <style>
+        .nowrap {
+            white-space: nowrap !important;
+        }
+        .numbers {
+            font-size: 80%; /* Ajuste o tamanho da fonte conforme necessário */
+        }
+    </style>
+<h1 class="mt-4">Relatório de Cartões</h1>
+
+<h1 class="display-6">Fechamento de Cartões</h1>
+    <table class="table table-sm table-responsive table-striped table-hover">
+        <thead>
+            <tr>
+                <th scope="col" class="nowrap">Cartão</th>
+                {% for vnt in vnt_list %}
+                <th scope="col" class="nowrap">{{ vnt }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for indice, linha in df.iterrows() %}
+            
+            <tr>
+                <th scope="row" class="nowrap"> {{ indice }} </td>
+                    {% for valor in linha.values %}
+                    <td class="nowrap numbers">
+                        {{ valor | format_currency('BRL') }}
+                    </td>
+                    {% endfor %}
+
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+
+
+
+
+{% endblock %}

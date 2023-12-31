@@ -1,15 +1,16 @@
 from datetime import datetime
 from os import getenv
-
+import subprocess
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, flash, redirect, render_template, request, url_for, send_file
 from flask_babel import Babel, Locale, format_currency
 from sqlalchemy import case, create_engine, func
 from sqlalchemy.orm import sessionmaker
 
 from model.db_crud import Account, Base, Category, Transaction
 from model.log import get_log
+import pandas as pd
 
 load_dotenv()
 
@@ -34,41 +35,19 @@ logger.info("Iniciando o aplicativo")
 
 @app.route("/")
 def index():
-    session = Session()
-
-    # Obtém o total do saldo nas contas ativas considerando todas as transações, agrupado por conta
-    total_balances = (
-        session.query(
-            Account.des_account.label("account"),
-            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
-                "total_balance"
-            ),
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Transaction.fl_consolidated, Transaction.vl_transaction),
-                        else_=0,
-                    )
-                ),
-                0,
-            ).label("consolidated_balance"),
-        )
-        .join(Transaction, Transaction.id_account == Account.id)
-        .filter(Account.fl_active == True)
-        .group_by(Account.id)
-        .all()
-    )
-
-    session.close()
-
-    return render_template("index.html", total_balances=total_balances)
+    return render_template("index.html")
 
 
 # Accounts Crud
 @app.route("/accounts")
 def pg_accounts():
     session = Session()
-    accounts = session.query(Account).all()
+    accounts = (
+        session.query(Account)
+        .order_by(Account.fl_active.desc())
+        .order_by(Account.des_account)
+        .all()
+    )
     session.close()
     return render_template("accounts.html", accounts=accounts)
 
@@ -82,6 +61,7 @@ def edit_account(id):
         # Atualiza o nome da conta com base no formulário enviado
         new_account_name = request.form.get("new_account_name")
         account.des_account = new_account_name
+        account.tp_account = request.form.get("tp_account")
         session.commit()
         session.close()
         flash("Conta alterada com sucesso!")
@@ -119,11 +99,68 @@ def activate_account(id):
     return redirect(url_for("pg_accounts"))
 
 
+@app.route("/consolidate_transaction/<int:id>")
+@app.route("/consolidate_transaction/<int:id>/<int:ac_filter>")
+def consolidate_transaction(id, ac_filter=None):
+    logger.info(f"Consolidando: {ac_filter}")
+    session = Session()
+    transaction = session.query(Transaction).get(id)
+
+    # Ativa a conta
+    transaction.fl_consolidated = True
+    session.commit()
+    session.close()
+    flash(f"Transação {id} foi Consolidada!")
+    if ac_filter is None:
+        return redirect(url_for("pg_transactions"))
+    return redirect(url_for("pg_transactions", ac_filter=ac_filter))
+
+
+@app.route("/unconsolidate_transaction/<int:id>")
+@app.route("/unconsolidate_transaction/<int:id>/<int:ac_filter>")
+def unconsolidate_transaction(id, ac_filter=None):
+    session = Session()
+    transaction = session.query(Transaction).get(id)
+
+    # Ativa a conta
+    transaction.fl_consolidated = False
+    session.commit()
+    session.close()
+    flash(f"Transação {id} não foi consolidada!")
+    if ac_filter is None:
+        return redirect(url_for("pg_transactions"))
+    return redirect(url_for("pg_transactions", ac_filter=ac_filter))
+
+
+@app.route("/consolidate_transfer/<int:id>")
+def consolidate_transfer(id):
+    session = Session()
+    transaction = session.query(Transaction).get(id)
+    transaction.fl_consolidated = True
+    session.commit()
+    session.close()
+    flash(f"Transação {id} foi Consolidada!")
+    return redirect(url_for("pg_transfers"))
+
+
+@app.route("/unconsolidate_transfer/<int:id>")
+def unconsolidate_transfer(id):
+    session = Session()
+    transaction = session.query(Transaction).get(id)
+    transaction.fl_consolidated = False
+    session.commit()
+    session.close()
+    flash(f"Transação {id} não foi consolidada!")
+    return redirect(url_for("pg_transfers"))
+
+
 @app.route("/create_account", methods=["POST"])
 def create_account():
     session = Session()
     des_account = request.form.get("account_name")
-    new_account = Account(des_account=des_account)
+    new_account = Account(
+        des_account=des_account, tp_account=request.form.get("tp_account")
+    )
     session.add(new_account)
     session.commit()
     session.close()
@@ -169,11 +206,45 @@ def edit_category(id):
 
 # tansaction
 @app.route("/transactions")
-def pg_transactions():
+@app.route("/transactions/<int:ac_filter>", methods=["GET", "POST"])
+def pg_transactions(ac_filter=None):
     session = Session()
+    total_balances = (
+        session.query(
+            Account.id.label("id"),
+            Account.des_account.label("account"),
+            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
+                "total_balance"
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.fl_consolidated, Transaction.vl_transaction),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("consolidated_balance"),
+        )
+        .join(Transaction, Transaction.id_account == Account.id)
+        .filter(Account.fl_active == True)
+        .group_by(Account.id)
+        .all()
+    )
+
     transactions = (
         session.query(Transaction).order_by(Transaction.id.desc()).limit(10).all()
     )
+
+    if ac_filter is not None:
+        transactions = (
+            session.query(Transaction)
+            .filter(Transaction.id_account == int(ac_filter))
+            .order_by(Transaction.id.desc())
+            .limit(10)
+            .all()
+        )
+
     accounts = session.query(Account).filter(Account.fl_active == True).all()
     categories = session.query(Category).all()
     session.close()
@@ -182,6 +253,8 @@ def pg_transactions():
         transactions=transactions,
         accounts=accounts,
         categories=categories,
+        total_balances=total_balances,
+        ac_filter=ac_filter,
     )
 
 
@@ -227,12 +300,38 @@ def create_transaction():
         session.commit()
         installment += 1
     session.close()
+    if request.form.get("ac_filter") != "None":
+        return redirect(
+            url_for("pg_transactions", ac_filter=request.form.get("ac_filter"))
+        )
     return redirect(url_for("pg_transactions"))
 
 
 @app.route("/transfer")
 def pg_transfers():
     session = Session()
+    total_balances = (
+        session.query(
+            Account.id.label("id"),
+            Account.des_account.label("account"),
+            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
+                "total_balance"
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.fl_consolidated, Transaction.vl_transaction),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("consolidated_balance"),
+        )
+        .join(Transaction, Transaction.id_account == Account.id)
+        .filter(Account.fl_active == True)
+        .group_by(Account.id)
+        .all()
+    )
     categories = (
         session.query(Category).filter(Category.des_category == "Transferência").all()
     )
@@ -254,6 +353,7 @@ def pg_transfers():
         transactions=transactions,
         accounts=accounts,
         categories=categories,
+        total_balances=total_balances,
     )
 
 
@@ -357,6 +457,88 @@ def edit_transaction(id):
         transaction=transaction,
         accounts=accounts,
         categories=categories,
+    )
+
+
+@app.route("/creditcard")
+def rel_creditcard():
+    session = Session()
+    accounts = (
+        session.query(Account)
+        .where(Account.tp_account == "c")
+        .where(Account.fl_active == True)
+        .all()
+    )
+    data_atual = datetime.now()
+    vnt_list = []
+    for i in range(-3, 10):
+        dt_in = data_atual + relativedelta(months=i)
+        vnt_list.append(int(f"{dt_in.year}{dt_in.month:02}"))
+
+    total_balances = (
+        session.query(
+            Account.id.label("id"),
+            Account.des_account.label("account"),
+            Transaction.vintage_installment_card,
+            func.coalesce(func.sum(Transaction.vl_transaction), 0).label(
+                "total_balance"
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (Transaction.fl_consolidated, Transaction.vl_transaction),
+                        else_=0,
+                    )
+                ),
+                0,
+            ).label("consolidated_balance"),
+        )
+        .join(Transaction, Transaction.id_account == Account.id)
+        .filter(Account.tp_account == "c")
+        .filter(Account.fl_active == True)
+        .filter(Transaction.vl_transaction < 0)
+        .filter(Transaction.vintage_installment_card >= vnt_list[0])
+        .filter(Transaction.vintage_installment_card <= vnt_list[len(vnt_list) - 1])
+        .group_by(Account.id)
+        .group_by(Transaction.vintage_installment_card)
+        .order_by(Account.des_account)
+        .order_by(Transaction.vintage_installment_card)
+        .all()
+    )
+    df = pd.DataFrame(
+        [
+            (
+                account.id,
+                account.account,
+                account.vintage_installment_card,
+                account.total_balance,
+                account.consolidated_balance,
+            )
+            for account in total_balances
+        ],
+        columns=[
+            "id",
+            "account",
+            "vintage_installment_card",
+            "total_balance",
+            "consolidated_balance",
+        ],
+    )
+    df = df.pivot_table(
+        index="account",
+        columns="vintage_installment_card",
+        values="consolidated_balance",
+        aggfunc="first",
+    )
+    df = df.fillna(0)
+    df.loc["Total"] = df.sum()
+    session.close()
+    return render_template(
+        "creditcard.html",
+        accounts=accounts,
+        total_balances=total_balances,
+        vnt_list=vnt_list,
+        df=df,
     )
 
 
