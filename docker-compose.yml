@@ -12,6 +12,8 @@ services:
       - .env
     depends_on:
       - db
+    networks:
+      - mynetwork
   db:
     image: postgres:13 
     volumes:
@@ -20,8 +22,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=pynance_db
+    networks:
+      - mynetwork  
 
 volumes:
   data:
 
-  
+networks:
+  mynetwork:
