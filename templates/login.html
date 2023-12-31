@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block container %}
+<h1 class="mt-4">Login</h1>
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+<div>
+    {% for message in messages %}
+    <p style="color: red;">{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="container text-center">
+    <div class="row justify-content-md-center">
+        <div class="col col-lg-2">
+            
+        </div>
+        <div class="col-md-auto">
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label" for="username">Usuário:</label>
+                    <input class="form-control" type="text" name="username" required><br>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="password">Senha:</label>
+                    <input class="form-control" type="password" name="password" required><br>
+                </div>
+                <button type="submit" class="btn btn-primary">Entrar</button>
+            </form>
+        </div>
+        <div class="col col-lg-2">
+            
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+{% endblock %}

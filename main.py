@@ -1,22 +1,39 @@
+# Import for Migrations
 from datetime import datetime
 from os import getenv
-import subprocess
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
-from flask import Flask, flash, redirect, render_template, request, url_for, send_file
+from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_babel import Babel, Locale, format_currency
 from sqlalchemy import case, create_engine, func
 from sqlalchemy.orm import sessionmaker
-
-from model.db_crud import Account, Base, Category, Transaction
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    login_required,
+    logout_user,
+    current_user,
+)
+from model.db_crud import Account, Base, Category, Transaction, User
 from model.log import get_log
 import pandas as pd
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
+
 
 load_dotenv()
 
 logger = get_log()
 
 app = Flask(__name__)
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+login_manager.login_message = "Acesso negado!"
+
 babel = Babel(app)
 locale = Locale("pt_BR")
 app.jinja_env.filters["format_currency"] = format_currency
@@ -33,13 +50,86 @@ Session = sessionmaker(bind=engine)
 logger.info("Iniciando o aplicativo")
 
 
+class RegistrationForm(FlaskForm):
+    username = StringField(
+        "Username", validators=[DataRequired(), Length(min=4, max=20)]
+    )
+    password = PasswordField(
+        "Password", validators=[DataRequired(), Length(min=6, max=50)]
+    )
+    confirm_password = PasswordField(
+        "Confirm Password", validators=[DataRequired(), EqualTo("password")]
+    )
+    submit = SubmitField("Register")
+
+    def validate_username(self, field):
+        session = Session()
+        if session.query(User).filter_by(username=field.data).first():
+            raise ValidationError("Username already taken. Choose a different one.")
+        session.close()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    session = Session()
+    user = session.query(User).get(int(user_id))
+    session.close()
+    return user
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = generate_password_hash(form.password.data)
+        new_user = User(username=form.username.data, password=hashed_password)
+
+        session = Session()
+        session.add(new_user)
+        session.commit()
+        session.close()
+        flash("Your account has been created! You are now able to log in.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html", form=form)
+
+
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html")
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        session = Session()
+        user = session.query(User).filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            return redirect(url_for("index"))
+        else:
+            flash("Credenciais inválidas. Tente novamente.", "error")
+        session.close()
+    return render_template("login.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("login"))
+
+
 # Accounts Crud
 @app.route("/accounts")
+@login_required
 def pg_accounts():
     session = Session()
     accounts = (
@@ -53,6 +143,7 @@ def pg_accounts():
 
 
 @app.route("/edit_account/<int:id>", methods=["GET", "POST"])
+@login_required
 def edit_account(id):
     session = Session()
     account = session.query(Account).get(id)
@@ -72,6 +163,7 @@ def edit_account(id):
 
 
 @app.route("/deactivate_account/<int:id>")
+@login_required
 def deactivate_account(id):
     session = Session()
     account = session.query(Account).get(id)
@@ -86,6 +178,7 @@ def deactivate_account(id):
 
 
 @app.route("/activate_account/<int:id>")
+@login_required
 def activate_account(id):
     session = Session()
     account = session.query(Account).get(id)
@@ -101,6 +194,7 @@ def activate_account(id):
 
 @app.route("/consolidate_transaction/<int:id>")
 @app.route("/consolidate_transaction/<int:id>/<int:ac_filter>")
+@login_required
 def consolidate_transaction(id, ac_filter=None):
     logger.info(f"Consolidando: {ac_filter}")
     session = Session()
@@ -118,6 +212,7 @@ def consolidate_transaction(id, ac_filter=None):
 
 @app.route("/unconsolidate_transaction/<int:id>")
 @app.route("/unconsolidate_transaction/<int:id>/<int:ac_filter>")
+@login_required
 def unconsolidate_transaction(id, ac_filter=None):
     session = Session()
     transaction = session.query(Transaction).get(id)
@@ -133,6 +228,7 @@ def unconsolidate_transaction(id, ac_filter=None):
 
 
 @app.route("/consolidate_transfer/<int:id>")
+@login_required
 def consolidate_transfer(id):
     session = Session()
     transaction = session.query(Transaction).get(id)
@@ -144,6 +240,7 @@ def consolidate_transfer(id):
 
 
 @app.route("/unconsolidate_transfer/<int:id>")
+@login_required
 def unconsolidate_transfer(id):
     session = Session()
     transaction = session.query(Transaction).get(id)
@@ -155,6 +252,7 @@ def unconsolidate_transfer(id):
 
 
 @app.route("/create_account", methods=["POST"])
+@login_required
 def create_account():
     session = Session()
     des_account = request.form.get("account_name")
@@ -169,6 +267,7 @@ def create_account():
 
 # Category Crud
 @app.route("/categories")
+@login_required
 def pg_categories():
     session = Session()
     categories = session.query(Category).all()
@@ -177,6 +276,7 @@ def pg_categories():
 
 
 @app.route("/create_category", methods=["POST"])
+@login_required
 def create_category():
     session = Session()
     des_category = request.form.get("category_name")
@@ -188,6 +288,7 @@ def create_category():
 
 
 @app.route("/edit_category/<int:id>", methods=["GET", "POST"])
+@login_required
 def edit_category(id):
     session = Session()
     category = session.query(Category).get(id)
@@ -207,6 +308,7 @@ def edit_category(id):
 # tansaction
 @app.route("/transactions")
 @app.route("/transactions/<int:ac_filter>", methods=["GET", "POST"])
+@login_required
 def pg_transactions(ac_filter=None):
     session = Session()
     total_balances = (
@@ -259,6 +361,7 @@ def pg_transactions(ac_filter=None):
 
 
 @app.route("/create_transaction", methods=["POST"])
+@login_required
 def create_transaction():
     session = Session()
     dt_transaction = datetime.strptime(request.form.get("dt_transaction"), "%Y-%m-%d")
@@ -308,6 +411,7 @@ def create_transaction():
 
 
 @app.route("/transfer")
+@login_required
 def pg_transfers():
     session = Session()
     total_balances = (
@@ -358,6 +462,7 @@ def pg_transfers():
 
 
 @app.route("/create_transfer", methods=["POST"])
+@login_required
 def create_transfer():
     session = Session()
     dt_transaction = datetime.strptime(request.form.get("dt_transaction"), "%Y-%m-%d")
@@ -405,6 +510,7 @@ def create_transfer():
 
 
 @app.route("/delete_transaction/<int:id>", methods=["GET", "POST"])
+@login_required
 def delete_transaction(id):
     session = Session()
     tansaction = session.query(Transaction).filter(Transaction.id == id).one()
@@ -416,6 +522,7 @@ def delete_transaction(id):
 
 
 @app.route("/edit_transaction/<int:id>", methods=["GET", "POST"])
+@login_required
 def edit_transaction(id):
     session = Session()
     transaction = session.query(Transaction).filter(Transaction.id == id).one()
@@ -461,6 +568,7 @@ def edit_transaction(id):
 
 
 @app.route("/creditcard")
+@login_required
 def rel_creditcard():
     session = Session()
     accounts = (
