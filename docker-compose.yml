@@ -24,6 +24,17 @@ services:
       - POSTGRES_DB=pynance_db
     networks:
       - mynetwork  
+  telegram-bot:
+    build: .
+    command: python telegram_bot.py
+    volumes:
+      - .:/usr/src/app/
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - mynetwork
 
 volumes:
   data:
